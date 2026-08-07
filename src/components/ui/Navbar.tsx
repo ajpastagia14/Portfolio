@@ -150,8 +150,8 @@ export default function Navbar() {
           width: '100%',
           borderRadius: 999,
           backgroundColor: scrolled
-            ? 'rgba(11,17,32,0.85)'
-            : 'rgba(11,17,32,0.5)',
+            ? 'rgba(10,10,10,0.85)'
+            : 'rgba(10,10,10,0.5)',
           backdropFilter: 'blur(12px)',
           border: '1px solid var(--border)',
         }}
@@ -239,7 +239,7 @@ export default function Navbar() {
           style={{
             marginTop: 10,
             borderRadius: 16,
-            background: 'rgba(11,17,32,0.9)',
+            background: 'rgba(10,10,10,0.9)',
             border: '1px solid var(--border)',
             backdropFilter: 'blur(12px)',
             padding: 20,

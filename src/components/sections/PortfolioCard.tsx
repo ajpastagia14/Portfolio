@@ -41,7 +41,7 @@ export default function PortfolioCard({
       whileHover={{ y: -4 }}
       className="group relative rounded-[26px] border border-white/10 bg-white/5 p-5 backdrop-blur-xl flex flex-col min-h-[340px]"
     >
-      <div className="w-full h-32 rounded-2xl overflow-hidden border border-white/10 bg-gradient-to-br from-[#14213d]/60 to-[#0b1120] mb-4 flex items-center justify-center">
+      <div className="w-full h-32 rounded-2xl overflow-hidden border border-white/10 bg-gradient-to-br from-[#232323]/60 to-[#0a0a0a] mb-4 flex items-center justify-center">
         {image ? (
           <img
             src={image}

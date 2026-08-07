@@ -11,7 +11,7 @@ export default function WelcomeScreen() {
       style={{
         width: '100%',
         height: '100vh',
-        background: '#0b1120',
+        background: '#0a0a0a',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',

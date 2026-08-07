@@ -1,7 +1,7 @@
 'use client';
 import './index.css';
 import * as THREE from 'three';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, extend, useThree, useFrame } from '@react-three/fiber';
 import {
   useGLTF,
@@ -23,9 +23,12 @@ extend({ MeshLineGeometry, MeshLineMaterial });
 
 const GLTF_PATH = '/assets/kartu.glb';
 const TEXTURE_PATH = '/assets/bandd.png';
+const PHOTO_PATH = '/assets/akshar-card-photo.jpg';
+const PHOTO_ASPECT = 941 / 1135; // width / height of the source photo
 
 useGLTF.preload(GLTF_PATH);
 useTexture.preload(TEXTURE_PATH);
+useTexture.preload(PHOTO_PATH);
 
 export default function App() {
   const [isMobile, setIsMobile] = useState(false);
@@ -135,7 +138,35 @@ function Band({ isMobile, maxSpeed = 50, minSpeed = 10 }) {
 
   const { nodes, materials } = useGLTF(GLTF_PATH);
   const texture = useTexture(TEXTURE_PATH);
+  const photoTexture = useTexture(PHOTO_PATH);
   const { width, height } = useThree((state) => state.size);
+
+  useEffect(() => {
+    photoTexture.colorSpace = THREE.SRGBColorSpace;
+    photoTexture.needsUpdate = true;
+  }, [photoTexture]);
+
+  // Position/size the photo plane using the card mesh's own bounding box so
+  // it lines up with the card face regardless of the model's exact scale.
+  const cardPhoto = useMemo(() => {
+    const geo = nodes.card.geometry;
+    geo.computeBoundingBox();
+    const box = geo.boundingBox;
+
+    const boxWidth = box.max.x - box.min.x;
+    const boxHeight = box.max.y - box.min.y;
+
+    const targetWidth = boxWidth * 0.8;
+    const targetHeight = targetWidth / PHOTO_ASPECT;
+
+    return {
+      width: targetWidth,
+      height: Math.min(targetHeight, boxHeight * 0.8),
+      x: (box.max.x + box.min.x) / 2,
+      y: (box.max.y + box.min.y) / 2,
+      z: box.max.z + 0.01,
+    };
+  }, [nodes]);
 
   const [curve] = useState(
     () =>
@@ -261,6 +292,17 @@ function Band({ isMobile, maxSpeed = 50, minSpeed = 10 }) {
           >
             <mesh geometry={nodes.card.geometry}>
               <meshPhysicalMaterial {...materials.base} />
+            </mesh>
+            <mesh
+              position={[cardPhoto.x, cardPhoto.y, cardPhoto.z]}
+              renderOrder={1}
+            >
+              <planeGeometry args={[cardPhoto.width, cardPhoto.height]} />
+              <meshBasicMaterial
+                map={photoTexture}
+                toneMapped={false}
+                depthTest={false}
+              />
             </mesh>
             <mesh geometry={nodes.clip.geometry} material={materials.metal} />
             <mesh geometry={nodes.clamp.geometry} material={materials.metal} />
