@@ -141,10 +141,10 @@ function Band({ isMobile, maxSpeed = 50, minSpeed = 10 }) {
   const photoTexture = useTexture(PHOTO_PATH);
   const { width, height } = useThree((state) => state.size);
 
-  // Position/size the photo plane using the card mesh's own bounding box so
-  // it fully covers the card face (slight overscan so none of the model's
-  // original artwork peeks out around the edges), then crop the texture
-  // itself (object-fit: cover style) so the photo isn't stretched.
+  // Position/size the photo plane using the card mesh's own bounding box,
+  // inset a bit so the card's own white border/frame stays visible around
+  // it (like a real ID badge), then crop the texture itself (object-fit:
+  // cover style) so the photo isn't stretched.
   const cardPhoto = useMemo(() => {
     const geo = nodes.card.geometry;
     geo.computeBoundingBox();
@@ -152,15 +152,15 @@ function Band({ isMobile, maxSpeed = 50, minSpeed = 10 }) {
 
     const boxWidth = box.max.x - box.min.x;
     const boxHeight = box.max.y - box.min.y;
-    const overscan = 1.04;
+    const inset = 0.86;
 
     return {
-      width: boxWidth * overscan,
-      height: boxHeight * overscan,
+      width: boxWidth * inset,
+      height: boxHeight * inset,
       planeAspect: boxWidth / boxHeight,
       x: (box.max.x + box.min.x) / 2,
       y: (box.max.y + box.min.y) / 2,
-      z: box.max.z + 0.015,
+      z: box.max.z + 0.012,
     };
   }, [nodes]);
 
@@ -170,7 +170,8 @@ function Band({ isMobile, maxSpeed = 50, minSpeed = 10 }) {
     photoTexture.wrapT = THREE.ClampToEdgeWrapping;
 
     // Crop (rather than stretch) the photo to fill the card face, the same
-    // way CSS `object-fit: cover` would.
+    // way CSS `object-fit: cover` would — anchored toward the top so the
+    // face isn't the part that gets cropped off.
     if (PHOTO_ASPECT > cardPhoto.planeAspect) {
       const scale = cardPhoto.planeAspect / PHOTO_ASPECT;
       photoTexture.repeat.set(scale, 1);
@@ -178,7 +179,7 @@ function Band({ isMobile, maxSpeed = 50, minSpeed = 10 }) {
     } else {
       const scale = PHOTO_ASPECT / cardPhoto.planeAspect;
       photoTexture.repeat.set(1, scale);
-      photoTexture.offset.set(0, (1 - scale) / 2);
+      photoTexture.offset.set(0, 1 - scale);
     }
 
     photoTexture.needsUpdate = true;
@@ -309,16 +310,9 @@ function Band({ isMobile, maxSpeed = 50, minSpeed = 10 }) {
             <mesh geometry={nodes.card.geometry}>
               <meshPhysicalMaterial {...materials.base} />
             </mesh>
-            <mesh
-              position={[cardPhoto.x, cardPhoto.y, cardPhoto.z]}
-              renderOrder={1}
-            >
+            <mesh position={[cardPhoto.x, cardPhoto.y, cardPhoto.z]}>
               <planeGeometry args={[cardPhoto.width, cardPhoto.height]} />
-              <meshBasicMaterial
-                map={photoTexture}
-                toneMapped={false}
-                depthTest={false}
-              />
+              <meshBasicMaterial map={photoTexture} toneMapped={false} />
             </mesh>
             <mesh geometry={nodes.clip.geometry} material={materials.metal} />
             <mesh geometry={nodes.clamp.geometry} material={materials.metal} />
