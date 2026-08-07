@@ -115,6 +115,39 @@ function Scene({ isMobile }) {
   );
 }
 
+// Builds a rounded-rectangle plane (instead of a plain sharp-cornered
+// PlaneGeometry) so the photo overlay's corners match the card's own
+// rounded corners. three.js's ShapeGeometry doesn't normalize UVs to 0–1
+// on its own, so they're remapped manually to line up with the texture.
+function createRoundedPhotoGeometry(width, height, radius) {
+  const shape = new THREE.Shape();
+  const x = -width / 2;
+  const y = -height / 2;
+  const r = Math.min(radius, width / 2, height / 2);
+
+  shape.moveTo(x, y + r);
+  shape.lineTo(x, y + height - r);
+  shape.quadraticCurveTo(x, y + height, x + r, y + height);
+  shape.lineTo(x + width - r, y + height);
+  shape.quadraticCurveTo(x + width, y + height, x + width, y + height - r);
+  shape.lineTo(x + width, y + r);
+  shape.quadraticCurveTo(x + width, y, x + width - r, y);
+  shape.lineTo(x + r, y);
+  shape.quadraticCurveTo(x, y, x, y + r);
+
+  const geometry = new THREE.ShapeGeometry(shape, 12);
+
+  const pos = geometry.attributes.position;
+  const uv = new Float32Array(pos.count * 2);
+  for (let i = 0; i < pos.count; i++) {
+    uv[i * 2] = (pos.getX(i) - x) / width;
+    uv[i * 2 + 1] = (pos.getY(i) - y) / height;
+  }
+  geometry.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+
+  return geometry;
+}
+
 function Band({ isMobile, maxSpeed = 50, minSpeed = 10 }) {
   const band = useRef();
   const fixed = useRef();
@@ -153,10 +186,14 @@ function Band({ isMobile, maxSpeed = 50, minSpeed = 10 }) {
     const boxWidth = box.max.x - box.min.x;
     const boxHeight = box.max.y - box.min.y;
     const inset = 0.86;
+    const width = boxWidth * inset;
+    const height = boxHeight * inset;
+    const cornerRadius = Math.min(width, height) * 0.14;
 
     return {
-      width: boxWidth * inset,
-      height: boxHeight * inset,
+      geometry: createRoundedPhotoGeometry(width, height, cornerRadius),
+      width,
+      height,
       planeAspect: boxWidth / boxHeight,
       x: (box.max.x + box.min.x) / 2,
       y: (box.max.y + box.min.y) / 2,
@@ -310,8 +347,10 @@ function Band({ isMobile, maxSpeed = 50, minSpeed = 10 }) {
             <mesh geometry={nodes.card.geometry}>
               <meshPhysicalMaterial {...materials.base} />
             </mesh>
-            <mesh position={[cardPhoto.x, cardPhoto.y, cardPhoto.z]}>
-              <planeGeometry args={[cardPhoto.width, cardPhoto.height]} />
+            <mesh
+              geometry={cardPhoto.geometry}
+              position={[cardPhoto.x, cardPhoto.y, cardPhoto.z]}
+            >
               {/* Same physical material as the card itself (clearcoat/
                   roughness/env reflections included) so the glossy white
                   highlight that sweeps the card while it swings still
