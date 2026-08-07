@@ -30,6 +30,21 @@ useGLTF.preload(GLTF_PATH);
 useTexture.preload(TEXTURE_PATH);
 useTexture.preload(PHOTO_PATH);
 
+function roundRectPath(ctx, x, y, w, h, r) {
+  const radius = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + w - radius, y);
+  ctx.arcTo(x + w, y, x + w, y + radius, radius);
+  ctx.lineTo(x + w, y + h - radius);
+  ctx.arcTo(x + w, y + h, x + w - radius, y + h, radius);
+  ctx.lineTo(x + radius, y + h);
+  ctx.arcTo(x, y + h, x, y + h - radius, radius);
+  ctx.lineTo(x, y + radius);
+  ctx.arcTo(x, y, x + radius, y, radius);
+  ctx.closePath();
+}
+
 export default function App() {
   const [isMobile, setIsMobile] = useState(false);
 
@@ -115,39 +130,6 @@ function Scene({ isMobile }) {
   );
 }
 
-// Builds a rounded-rectangle plane (instead of a plain sharp-cornered
-// PlaneGeometry) so the photo overlay's corners match the card's own
-// rounded corners. three.js's ShapeGeometry doesn't normalize UVs to 0–1
-// on its own, so they're remapped manually to line up with the texture.
-function createRoundedPhotoGeometry(width, height, radius) {
-  const shape = new THREE.Shape();
-  const x = -width / 2;
-  const y = -height / 2;
-  const r = Math.min(radius, width / 2, height / 2);
-
-  shape.moveTo(x, y + r);
-  shape.lineTo(x, y + height - r);
-  shape.quadraticCurveTo(x, y + height, x + r, y + height);
-  shape.lineTo(x + width - r, y + height);
-  shape.quadraticCurveTo(x + width, y + height, x + width, y + height - r);
-  shape.lineTo(x + width, y + r);
-  shape.quadraticCurveTo(x + width, y, x + width - r, y);
-  shape.lineTo(x + r, y);
-  shape.quadraticCurveTo(x, y, x, y + r);
-
-  const geometry = new THREE.ShapeGeometry(shape, 12);
-
-  const pos = geometry.attributes.position;
-  const uv = new Float32Array(pos.count * 2);
-  for (let i = 0; i < pos.count; i++) {
-    uv[i * 2] = (pos.getX(i) - x) / width;
-    uv[i * 2 + 1] = (pos.getY(i) - y) / height;
-  }
-  geometry.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
-
-  return geometry;
-}
-
 function Band({ isMobile, maxSpeed = 50, minSpeed = 10 }) {
   const band = useRef();
   const fixed = useRef();
@@ -174,53 +156,75 @@ function Band({ isMobile, maxSpeed = 50, minSpeed = 10 }) {
   const photoTexture = useTexture(PHOTO_PATH);
   const { width, height } = useThree((state) => state.size);
 
-  // Position/size the photo plane using the card mesh's own bounding box,
-  // inset a bit so the card's own white border/frame stays visible around
-  // it (like a real ID badge), then crop the texture itself (object-fit:
-  // cover style) so the photo isn't stretched.
-  const cardPhoto = useMemo(() => {
+  // Aspect ratio of the card's own face, so the photo can be cropped
+  // (object-fit: cover style) instead of stretched. The photo is applied
+  // directly as the card mesh's own texture map — no separate overlay
+  // mesh — so it automatically inherits the card's real rounded-corner
+  // shape and normals, with no z-fighting or doubled-up reflections.
+  const cardAspect = useMemo(() => {
     const geo = nodes.card.geometry;
     geo.computeBoundingBox();
     const box = geo.boundingBox;
-
-    const boxWidth = box.max.x - box.min.x;
-    const boxHeight = box.max.y - box.min.y;
-    const inset = 0.86;
-    const width = boxWidth * inset;
-    const height = boxHeight * inset;
-    const cornerRadius = Math.min(width, height) * 0.14;
-
-    return {
-      geometry: createRoundedPhotoGeometry(width, height, cornerRadius),
-      width,
-      height,
-      planeAspect: boxWidth / boxHeight,
-      x: (box.max.x + box.min.x) / 2,
-      y: (box.max.y + box.min.y) / 2,
-      z: box.max.z + 0.03,
-    };
+    return (box.max.x - box.min.x) / (box.max.y - box.min.y);
   }, [nodes]);
 
-  useEffect(() => {
-    photoTexture.colorSpace = THREE.SRGBColorSpace;
-    photoTexture.wrapS = THREE.ClampToEdgeWrapping;
-    photoTexture.wrapT = THREE.ClampToEdgeWrapping;
+  // Bake a white border + rounded-corner photo into a single 2D canvas,
+  // then use that as the card's texture map. Doing it this way (one
+  // flat image) instead of a 3D inset/overlay avoids z-fighting entirely
+  // while still keeping the card's white frame and giving the photo its
+  // own rounded corners inside it.
+  const cardTexture = useMemo(() => {
+    if (typeof document === 'undefined') return null;
+    const img = photoTexture.image;
+    if (!img) return null;
 
-    // Crop (rather than stretch) the photo to fill the card face, the same
-    // way CSS `object-fit: cover` would — anchored toward the top so the
-    // face isn't the part that gets cropped off.
-    if (PHOTO_ASPECT > cardPhoto.planeAspect) {
-      const scale = cardPhoto.planeAspect / PHOTO_ASPECT;
-      photoTexture.repeat.set(scale, 1);
-      photoTexture.offset.set((1 - scale) / 2, 0);
+    const W = 1024;
+    const H = Math.max(1, Math.round(W / cardAspect));
+    const canvas = document.createElement('canvas');
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+
+    // White border matching the card's own base color.
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, W, H);
+
+    const margin = Math.min(W, H) * 0.07;
+    const rx = margin;
+    const ry = margin;
+    const rw = W - margin * 2;
+    const rh = H - margin * 2;
+    const radius = Math.min(rw, rh) * 0.12;
+
+    ctx.save();
+    roundRectPath(ctx, rx, ry, rw, rh, radius);
+    ctx.clip();
+
+    // Crop (rather than stretch) the photo to cover that rounded region —
+    // anchored toward the top so a face crop doesn't cut off the head.
+    const imgAspect = img.width / img.height;
+    const rectAspect = rw / rh;
+    let sx, sy, sw, sh;
+    if (imgAspect > rectAspect) {
+      sh = img.height;
+      sw = sh * rectAspect;
+      sx = (img.width - sw) / 2;
+      sy = 0;
     } else {
-      const scale = PHOTO_ASPECT / cardPhoto.planeAspect;
-      photoTexture.repeat.set(1, scale);
-      photoTexture.offset.set(0, 1 - scale);
+      sw = img.width;
+      sh = sw / rectAspect;
+      sx = 0;
+      sy = 0;
     }
+    ctx.drawImage(img, sx, sy, sw, sh, rx, ry, rw, rh);
+    ctx.restore();
 
-    photoTexture.needsUpdate = true;
-  }, [photoTexture, cardPhoto.planeAspect]);
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.needsUpdate = true;
+    return tex;
+  }, [photoTexture, cardAspect]);
 
   const [curve] = useState(
     () =>
@@ -345,24 +349,14 @@ function Band({ isMobile, maxSpeed = 50, minSpeed = 10 }) {
             }}
           >
             <mesh geometry={nodes.card.geometry}>
-              <meshPhysicalMaterial {...materials.base} />
-            </mesh>
-            <mesh
-              geometry={cardPhoto.geometry}
-              position={[cardPhoto.x, cardPhoto.y, cardPhoto.z]}
-            >
-              {/* Same physical material as the card itself (clearcoat/
-                  roughness/env reflections included) so the glossy white
-                  highlight that sweeps the card while it swings still
-                  shows up on the photo instead of being flattened out.
-                  polygonOffset avoids z-fighting with the card surface
-                  right behind it. */}
+              {/* The photo IS the card's own texture map now — same
+                  surface, same normals, same rounded silhouette as the
+                  model itself. No separate overlay, so no z-fighting and
+                  no doubled-up reflections. cardTexture is the photo
+                  pre-composited with a white border + rounded corners. */}
               <meshPhysicalMaterial
                 {...materials.base}
-                map={photoTexture}
-                polygonOffset
-                polygonOffsetFactor={-4}
-                polygonOffsetUnits={-4}
+                map={cardTexture ?? undefined}
               />
             </mesh>
             <mesh geometry={nodes.clip.geometry} material={materials.metal} />
