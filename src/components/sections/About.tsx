@@ -335,6 +335,7 @@ export default function About() {
                     height: 240,
                     borderRadius: "50%",
                     objectFit: "cover",
+                    objectPosition: "center top",
                     display: "block",
                     filter: "grayscale(1) contrast(1.05)",
                   }}
