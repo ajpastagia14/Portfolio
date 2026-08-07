@@ -336,6 +336,7 @@ export default function About() {
                     borderRadius: "50%",
                     objectFit: "cover",
                     display: "block",
+                    filter: "grayscale(1) contrast(1.05)",
                   }}
                 />
               </div>

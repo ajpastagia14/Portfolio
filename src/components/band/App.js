@@ -141,13 +141,10 @@ function Band({ isMobile, maxSpeed = 50, minSpeed = 10 }) {
   const photoTexture = useTexture(PHOTO_PATH);
   const { width, height } = useThree((state) => state.size);
 
-  useEffect(() => {
-    photoTexture.colorSpace = THREE.SRGBColorSpace;
-    photoTexture.needsUpdate = true;
-  }, [photoTexture]);
-
   // Position/size the photo plane using the card mesh's own bounding box so
-  // it lines up with the card face regardless of the model's exact scale.
+  // it fully covers the card face (slight overscan so none of the model's
+  // original artwork peeks out around the edges), then crop the texture
+  // itself (object-fit: cover style) so the photo isn't stretched.
   const cardPhoto = useMemo(() => {
     const geo = nodes.card.geometry;
     geo.computeBoundingBox();
@@ -155,18 +152,37 @@ function Band({ isMobile, maxSpeed = 50, minSpeed = 10 }) {
 
     const boxWidth = box.max.x - box.min.x;
     const boxHeight = box.max.y - box.min.y;
-
-    const targetWidth = boxWidth * 0.8;
-    const targetHeight = targetWidth / PHOTO_ASPECT;
+    const overscan = 1.04;
 
     return {
-      width: targetWidth,
-      height: Math.min(targetHeight, boxHeight * 0.8),
+      width: boxWidth * overscan,
+      height: boxHeight * overscan,
+      planeAspect: boxWidth / boxHeight,
       x: (box.max.x + box.min.x) / 2,
       y: (box.max.y + box.min.y) / 2,
-      z: box.max.z + 0.01,
+      z: box.max.z + 0.015,
     };
   }, [nodes]);
+
+  useEffect(() => {
+    photoTexture.colorSpace = THREE.SRGBColorSpace;
+    photoTexture.wrapS = THREE.ClampToEdgeWrapping;
+    photoTexture.wrapT = THREE.ClampToEdgeWrapping;
+
+    // Crop (rather than stretch) the photo to fill the card face, the same
+    // way CSS `object-fit: cover` would.
+    if (PHOTO_ASPECT > cardPhoto.planeAspect) {
+      const scale = cardPhoto.planeAspect / PHOTO_ASPECT;
+      photoTexture.repeat.set(scale, 1);
+      photoTexture.offset.set((1 - scale) / 2, 0);
+    } else {
+      const scale = PHOTO_ASPECT / cardPhoto.planeAspect;
+      photoTexture.repeat.set(1, scale);
+      photoTexture.offset.set(0, (1 - scale) / 2);
+    }
+
+    photoTexture.needsUpdate = true;
+  }, [photoTexture, cardPhoto.planeAspect]);
 
   const [curve] = useState(
     () =>
