@@ -287,11 +287,12 @@ function Band({ isMobile, maxSpeed = 50, minSpeed = 10 }) {
       const newZ = vec.z - dragged.z;
 
       // How far down the card can be dragged before it's clamped, in
-      // normalized pointer-Y (-1 bottom, 1 top). Raised from the
-      // original -0.1/-0.2 so the card can be pulled much further down
-      // the Hero section instead of stopping around its vertical center.
+      // normalized pointer-Y (-1 bottom, 1 top). -0.92 let the card reach
+      // low enough to hit Hero's own overflow:hidden boundary and get
+      // visibly cut off. Pulled back to a middle ground: more give than
+      // the original -0.1/-0.2, but capped well above where Hero clips.
       const screenY = state.pointer.y;
-      const limit = isMobile ? -0.6 : -0.92;
+      const limit = isMobile ? -0.5 : -0.5;
 
       if (screenY < limit) newY = card.current.translation().y;
 
