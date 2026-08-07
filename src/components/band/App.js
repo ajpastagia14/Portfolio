@@ -197,7 +197,7 @@ function Band({ isMobile, maxSpeed = 50, minSpeed = 10 }) {
       planeAspect: boxWidth / boxHeight,
       x: (box.max.x + box.min.x) / 2,
       y: (box.max.y + box.min.y) / 2,
-      z: box.max.z + 0.012,
+      z: box.max.z + 0.03,
     };
   }, [nodes]);
 
@@ -354,8 +354,16 @@ function Band({ isMobile, maxSpeed = 50, minSpeed = 10 }) {
               {/* Same physical material as the card itself (clearcoat/
                   roughness/env reflections included) so the glossy white
                   highlight that sweeps the card while it swings still
-                  shows up on the photo instead of being flattened out. */}
-              <meshPhysicalMaterial {...materials.base} map={photoTexture} />
+                  shows up on the photo instead of being flattened out.
+                  polygonOffset avoids z-fighting with the card surface
+                  right behind it. */}
+              <meshPhysicalMaterial
+                {...materials.base}
+                map={photoTexture}
+                polygonOffset
+                polygonOffsetFactor={-4}
+                polygonOffsetUnits={-4}
+              />
             </mesh>
             <mesh geometry={nodes.clip.geometry} material={materials.metal} />
             <mesh geometry={nodes.clamp.geometry} material={materials.metal} />
