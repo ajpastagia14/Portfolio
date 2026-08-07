@@ -1,0 +1,92 @@
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-primary: #0b1120;
+  --bg-secondary: #101a2e;
+  --bg-card: #141f38;
+  --border: #223050;
+  --text-primary: #f5f7fa;
+  --text-secondary: #93a0b8;
+  --text-muted: #5c6b85;
+  --accent: #2dd4bf;
+  --accent-navy: #1e3a8a;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'Syne', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  overflow-x: hidden;
+}
+html {
+  scroll-behavior: smooth;
+}
+
+* {
+  caret-color: transparent;
+  user-select: none;
+}
+
+/* Hide scrollbar global */
+::-webkit-scrollbar {
+  width: 0px;
+  height: 0px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: transparent;
+}
+
+/* Firefox */
+html {
+  scrollbar-width: none;
+}
+
+/* IE + Edge lama */
+body {
+  -ms-overflow-style: none;
+}
+
+input,
+textarea {
+  caret-color: white;
+}
+
+.custom-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.12);
+  border-radius: 999px;
+}
+
+.custom-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.2);
+}
