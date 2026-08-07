@@ -119,7 +119,44 @@ export default function App({ onDragChange } = {}) {
   );
 }
 
+// When the drag-triggered container grows taller (see Hero.tsx), the
+// <Canvas> itself resizes taller while staying the same width. With a
+// fixed vertical FOV, R3F maps the *same* angular slice of the scene into
+// *more* pixels, so everything on screen visually "zooms in". This rig
+// keeps the horizontal FOV constant (locked to whatever it was right
+// before the drag started) and grows the vertical FOV to match, so a
+// taller canvas reveals more of the scene below instead of magnifying it.
+// At rest (no height change), this is a mathematical no-op — identical to
+// the plain fov=25 camera.
+function CameraRig({ dragged, baseFov = 25 }) {
+  const { camera, size } = useThree();
+  const restAspect = useRef(size.width / Math.max(size.height, 1));
+
+  useEffect(() => {
+    if (!dragged) {
+      restAspect.current = size.width / Math.max(size.height, 1);
+    }
+  }, [dragged, size]);
+
+  useEffect(() => {
+    const aspect = size.width / Math.max(size.height, 1);
+    const baseFovRad = (baseFov * Math.PI) / 180;
+    const horizontalFovRad =
+      2 * Math.atan(Math.tan(baseFovRad / 2) * restAspect.current);
+    const verticalFovRad =
+      2 * Math.atan(Math.tan(horizontalFovRad / 2) / aspect);
+
+    camera.fov = (verticalFovRad * 180) / Math.PI;
+    camera.aspect = aspect;
+    camera.updateProjectionMatrix();
+  }, [camera, size, baseFov]);
+
+  return null;
+}
+
 function Scene({ isMobile, onDragChange }) {
+  const [dragging, setDragging] = useState(false);
+
   return (
     <Physics
       key={isMobile ? 'mobile' : 'desktop'}
@@ -127,8 +164,17 @@ function Scene({ isMobile, onDragChange }) {
       gravity={[0, -40, 0]}
       timeStep={1 / 60}
     >
+      <CameraRig dragged={dragging} />
       {/* hanya desktop */}
-      {!isMobile && <Band isMobile={isMobile} onDragChange={onDragChange} />}
+      {!isMobile && (
+        <Band
+          isMobile={isMobile}
+          onDragChange={(v) => {
+            setDragging(v);
+            onDragChange?.(v);
+          }}
+        />
+      )}
     </Physics>
   );
 }
