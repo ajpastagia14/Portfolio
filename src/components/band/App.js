@@ -161,11 +161,29 @@ function Band({ isMobile, maxSpeed = 50, minSpeed = 10 }) {
   // directly as the card mesh's own texture map — no separate overlay
   // mesh — so it automatically inherits the card's real rounded-corner
   // shape and normals, with no z-fighting or doubled-up reflections.
-  const cardAspect = useMemo(() => {
-    const geo = nodes.card.geometry;
+  //
+  // The model's own UVs on this mesh are unusable for this (the original
+  // material never had an image texture, so the UVs were just whatever
+  // the 3D tool auto-generated — not a clean front-facing rectangle; V
+  // only spans 0–0.76, and it's rotated relative to the card's actual
+  // faces). So the geometry is cloned and given fresh UVs computed
+  // directly from each vertex's x/y position instead.
+  const { cardGeometry, cardAspect } = useMemo(() => {
+    const geo = nodes.card.geometry.clone();
     geo.computeBoundingBox();
     const box = geo.boundingBox;
-    return (box.max.x - box.min.x) / (box.max.y - box.min.y);
+    const w = box.max.x - box.min.x;
+    const h = box.max.y - box.min.y;
+
+    const pos = geo.attributes.position;
+    const uv = new Float32Array(pos.count * 2);
+    for (let i = 0; i < pos.count; i++) {
+      uv[i * 2] = (pos.getX(i) - box.min.x) / w;
+      uv[i * 2 + 1] = (pos.getY(i) - box.min.y) / h;
+    }
+    geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+
+    return { cardGeometry: geo, cardAspect: w / h };
   }, [nodes]);
 
   // Bake a white border + rounded-corner photo into a single 2D canvas,
@@ -348,12 +366,14 @@ function Band({ isMobile, maxSpeed = 50, minSpeed = 10 }) {
               );
             }}
           >
-            <mesh geometry={nodes.card.geometry}>
+            <mesh geometry={cardGeometry}>
               {/* The photo IS the card's own texture map now — same
                   surface, same normals, same rounded silhouette as the
-                  model itself. No separate overlay, so no z-fighting and
-                  no doubled-up reflections. cardTexture is the photo
-                  pre-composited with a white border + rounded corners. */}
+                  model itself (cardGeometry is a clone with corrected
+                  UVs — see note above). No separate overlay, so no
+                  z-fighting and no doubled-up reflections. cardTexture is
+                  the photo pre-composited with a white border + rounded
+                  corners. */}
               <meshPhysicalMaterial
                 {...materials.base}
                 map={cardTexture ?? undefined}
