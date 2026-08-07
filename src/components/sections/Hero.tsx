@@ -6,7 +6,6 @@ import App from "@/components/band/App";
 import TextType from "@/components/band/TextType";
 import { Download, ArrowUpRight, Mail } from "lucide-react";
 import { FaLinkedinIn, FaGithub } from "react-icons/fa";
-import SplashCursor from "@/components/SplashCursor";
 
 const skills = ["SQL", "Python", "Power BI", "Tableau", "Excel"];
 
@@ -79,13 +78,6 @@ export default function Hero({ showApp }: HeroProps) {
         {showApp && <App />}
       </div>
 
-      {/* CURSOR SPLASH — desktop only, WebGL fluid trail on mouse move */}
-      <div
-        className="hidden lg:block"
-        style={{ position: "absolute", inset: 0, zIndex: 45 }}
-      >
-        <SplashCursor />
-      </div>
 
       {/* TEXT */}
       <div

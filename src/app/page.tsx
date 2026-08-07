@@ -10,6 +10,7 @@ import About from '@/components/sections/About'
 import PortfolioShowcase from '@/components/sections/PortfolioShowcase'
 import ContactSection from '@/components/sections/contact/ContactSection'
 import WelcomeScreen from '@/components/WelcomeScreen'
+import SplashCursor from '@/components/SplashCursor'
 
 import { hasPlayedIntro, setIntroPlayed } from '@/lib/introState'
 
@@ -71,6 +72,15 @@ useEffect(() => {
   return (
     <main style={{ position: 'relative', overflow: 'hidden' }}>
       <AnimatedBackground />
+
+      {/* CURSOR SPLASH — desktop only, WebGL fluid trail follows the mouse
+          across the whole page (fixed to the viewport, not just Hero) */}
+      <div
+        className="hidden lg:block"
+        style={{ position: 'fixed', inset: 0, zIndex: 45, pointerEvents: 'none' }}
+      >
+        <SplashCursor />
+      </div>
 
       <div style={{ position: 'relative', zIndex: 2 }}>
         <Navbar />
