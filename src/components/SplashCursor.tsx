@@ -1151,11 +1151,12 @@ export default function SplashCursor({
     }
 
     function generateColor(): ColorRGB {
-      const c = HSVtoRGB(Math.random(), 1.0, 1.0);
-      c.r *= 0.15;
-      c.g *= 0.15;
-      c.b *= 0.15;
-      return c;
+      // Monochrome white/grey "ink" instead of rainbow, so the splash
+      // matches the site's black/charcoal/white palette rather than
+      // clashing with it. Brightness varies a bit for an organic feel.
+      const shade = 0.5 + Math.random() * 0.5;
+      const intensity = 0.16 * shade;
+      return { r: intensity, g: intensity, b: intensity };
     }
 
     function HSVtoRGB(h: number, s: number, v: number): ColorRGB {
