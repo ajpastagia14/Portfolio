@@ -23,6 +23,7 @@ type HeroProps = {
 
 export default function Hero({ showApp }: HeroProps) {
   const [startAnim, setStartAnim] = useState(false);
+  const [cardDragging, setCardDragging] = useState(false);
 
   useEffect(() => {
     const heroPlayed = sessionStorage.getItem("heroPlayed");
@@ -63,19 +64,28 @@ export default function Hero({ showApp }: HeroProps) {
         alignItems: "center",
         justifyContent: "flex-start",
         position: "relative",
-        overflow: "hidden",
+        // Only let the card render past this section's bottom edge while
+        // it's actively being dragged (see APP LAYER below) — reverts to
+        // clipped the instant the drag ends.
+        overflow: cardDragging ? "visible" : "hidden",
       }}
     >
-      {/* APP LAYER */}
+      {/* APP LAYER — grows past the Hero section only while a drag is in
+          progress, so the card can be pulled further down the page without
+          the interactive area permanently overlapping (and risking
+          blocking clicks in) the About section below. */}
       <div
         style={{
           position: "absolute",
-          inset: 0,
+          top: 0,
+          left: 0,
+          right: 0,
+          height: cardDragging ? "230vh" : "100%",
           zIndex: 40,
           pointerEvents: showApp ? "auto" : "none",
         }}
       >
-        {showApp && <App />}
+        {showApp && <App onDragChange={setCardDragging} />}
       </div>
 
 
