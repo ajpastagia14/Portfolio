@@ -258,10 +258,14 @@ function Band({ isMobile, maxSpeed = 50, minSpeed = 10 }) {
   const [hovered, hover] = useState(false);
   const canDrag = !isMobile;
 
-  useRopeJoint(fixed, j1, [[0, 0, 0], [0, 0, 0], 1]);
-  useRopeJoint(j1, j2, [[0, 0, 0], [0, 0, 0], 1]);
-  useRopeJoint(j2, j3, [[0, 0, 0], [0, 0, 0], 1]);
-  useSphericalJoint(j3, card, [[0, 0, 0], [0, 1.45, 0]]);
+  // Slightly longer rope segments than the original template, so the
+  // lanyard has more elastic give/stretch when pulled instead of going
+  // taut almost immediately. Kept modest so the card's resting/idle
+  // position doesn't shift noticeably from before.
+  useRopeJoint(fixed, j1, [[0, 0, 0], [0, 0, 0], 1.15]);
+  useRopeJoint(j1, j2, [[0, 0, 0], [0, 0, 0], 1.15]);
+  useRopeJoint(j2, j3, [[0, 0, 0], [0, 0, 0], 1.15]);
+  useSphericalJoint(j3, card, [[0, 0, 0], [0, 1.6, 0]]);
 
   useEffect(() => {
     if (hovered && canDrag) {
@@ -282,8 +286,12 @@ function Band({ isMobile, maxSpeed = 50, minSpeed = 10 }) {
       let newY = vec.y - dragged.y;
       const newZ = vec.z - dragged.z;
 
+      // How far down the card can be dragged before it's clamped, in
+      // normalized pointer-Y (-1 bottom, 1 top). Raised from the
+      // original -0.1/-0.2 so the card can be pulled much further down
+      // the Hero section instead of stopping around its vertical center.
       const screenY = state.pointer.y;
-      const limit = isMobile ? -0.1 : -0.2;
+      const limit = isMobile ? -0.6 : -0.92;
 
       if (screenY < limit) newY = card.current.translation().y;
 
