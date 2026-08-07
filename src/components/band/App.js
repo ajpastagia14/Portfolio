@@ -45,10 +45,7 @@ function roundRectPath(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
-/**
- * @param {{ onDragChange?: (dragging: boolean) => void }} [props]
- */
-export default function App({ onDragChange } = {}) {
+export default function App() {
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -82,7 +79,7 @@ export default function App({ onDragChange } = {}) {
       >
         <ambientLight intensity={Math.PI} />
 
-        <Scene isMobile={isMobile} onDragChange={onDragChange} />
+        <Scene isMobile={isMobile} />
 
         <Environment blur={0.75}>
           <Lightformer
@@ -119,7 +116,7 @@ export default function App({ onDragChange } = {}) {
   );
 }
 
-function Scene({ isMobile, onDragChange }) {
+function Scene({ isMobile }) {
   return (
     <Physics
       key={isMobile ? 'mobile' : 'desktop'}
@@ -128,12 +125,12 @@ function Scene({ isMobile, onDragChange }) {
       timeStep={1 / 60}
     >
       {/* hanya desktop */}
-      {!isMobile && <Band isMobile={isMobile} onDragChange={onDragChange} />}
+      {!isMobile && <Band isMobile={isMobile} />}
     </Physics>
   );
 }
 
-function Band({ isMobile, onDragChange, maxSpeed = 50, minSpeed = 10 }) {
+function Band({ isMobile, maxSpeed = 50, minSpeed = 10 }) {
   const band = useRef();
   const fixed = useRef();
   const j1 = useRef();
@@ -260,15 +257,6 @@ function Band({ isMobile, onDragChange, maxSpeed = 50, minSpeed = 10 }) {
   const [dragged, drag] = useState(false);
   const [hovered, hover] = useState(false);
   const canDrag = !isMobile;
-
-  // Let the parent know when an active drag starts/stops, so the HTML
-  // container around this canvas can temporarily grow past the Hero
-  // section's edge (and only then) — the card can be pulled further down
-  // without needing a permanently oversized interactive area that would
-  // risk blocking clicks elsewhere on the page.
-  useEffect(() => {
-    onDragChange?.(!!dragged);
-  }, [dragged, onDragChange]);
 
   // Slightly longer rope segments than the original template, so the
   // lanyard has more elastic give/stretch when pulled instead of going
