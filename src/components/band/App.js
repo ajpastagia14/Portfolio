@@ -221,9 +221,10 @@ function Band({ isMobile, maxSpeed = 50, minSpeed = 10 }) {
 
     // The card mesh's clearcoat + the scene's bright environment lighting
     // (tuned for a glossy plastic card, not a photo) blow out highlights
-    // once this is lit in 3D. Pre-darken slightly here so the final lit
-    // result matches the photo's actual tone instead of looking washed out.
-    ctx.filter = 'brightness(0.8) contrast(1.1) saturate(0.92)';
+    // once this is lit in 3D. The first attempt at compensating for this
+    // (brightness 0.8) was barely visible against that lighting — pushing
+    // it much further here.
+    ctx.filter = 'brightness(0.52) contrast(1.15) saturate(0.85)';
 
     // Crop (rather than stretch) the photo to cover that rounded region —
     // anchored toward the top so a face crop doesn't cut off the head.
@@ -395,8 +396,11 @@ function Band({ isMobile, maxSpeed = 50, minSpeed = 10 }) {
                 // Dial back the base material's glossy-plastic clearcoat/
                 // env reflection on this mesh only (the metal clip/clamp
                 // keep their normal look) — it was overexposing the photo.
-                clearcoat={(materials.base.clearcoat ?? 1) * 0.4}
-                envMapIntensity={(materials.base.envMapIntensity ?? 1) * 0.6}
+                // First pass (0.4 / 0.6) was too subtle to see against the
+                // scene's lighting, so this is a much bigger cut.
+                color={new THREE.Color('#9a9a9a')}
+                clearcoat={(materials.base.clearcoat ?? 1) * 0.12}
+                envMapIntensity={(materials.base.envMapIntensity ?? 1) * 0.22}
               />
             </mesh>
             <mesh geometry={nodes.clip.geometry} material={materials.metal} />
