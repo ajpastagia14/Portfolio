@@ -312,7 +312,11 @@ function Band({ isMobile, maxSpeed = 50, minSpeed = 10 }) {
             </mesh>
             <mesh position={[cardPhoto.x, cardPhoto.y, cardPhoto.z]}>
               <planeGeometry args={[cardPhoto.width, cardPhoto.height]} />
-              <meshBasicMaterial map={photoTexture} toneMapped={false} />
+              {/* Same physical material as the card itself (clearcoat/
+                  roughness/env reflections included) so the glossy white
+                  highlight that sweeps the card while it swings still
+                  shows up on the photo instead of being flattened out. */}
+              <meshPhysicalMaterial {...materials.base} map={photoTexture} />
             </mesh>
             <mesh geometry={nodes.clip.geometry} material={materials.metal} />
             <mesh geometry={nodes.clamp.geometry} material={materials.metal} />
