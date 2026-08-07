@@ -80,7 +80,10 @@ export default function Hero({ showApp }: HeroProps) {
       </div>
 
       {/* CURSOR SPLASH — desktop only, WebGL fluid trail on mouse move */}
-      <div className="hidden lg:block" style={{ zIndex: 45, position: "relative" }}>
+      <div
+        className="hidden lg:block"
+        style={{ position: "absolute", inset: 0, zIndex: 45 }}
+      >
         <SplashCursor />
       </div>
 
